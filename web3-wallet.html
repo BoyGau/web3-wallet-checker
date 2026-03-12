@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BoyGau · Web3 Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #05070f;
+    --surface:  #0b0f1e;
+    --border:   #1a2040;
+    --accent:   #00e5ff;
+    --accent2:  #7c3aed;
+    --green:    #00ffa3;
+    --red:      #ff4d6d;
+    --text:     #e2e8f8;
+    --muted:    #4a5580;
+    --card:     #0d1228;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* GLOW ORBS */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 { width: 500px; height: 500px; background: rgba(0,229,255,0.06); top: -150px; right: -100px; }
+  .orb-2 { width: 400px; height: 400px; background: rgba(124,58,237,0.07); bottom: -100px; left: -100px; }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 80px;
+  }
+
+  /* HEADER */
+  header {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 60px;
+    animation: fadeDown 0.5s ease both;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+  .logo span { color: var(--accent); }
+
+  .network-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+  .network-badge.connected { border-color: var(--green); color: var(--green); }
+  .network-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .network-badge.connected .network-dot {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* MAIN CARD */
+  .main-card {
+    width: 100%;
+    max-width: 680px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    overflow: hidden;
+    animation: fadeUp 0.6s ease 0.1s both;
+    position: relative;
+  }
+
+  .main-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+  }
+
+  /* CONNECT SECTION */
+  .connect-section {
+    padding: 60px 40px;
+    text-align: center;
+  }
+
+  .connect-icon {
+    width: 80px; height: 80px;
+    margin: 0 auto 28px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+  .connect-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,229,255,0.1), transparent);
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+    line-height: 1.1;
+  }
+  h1 em { color: var(--accent); font-style: normal; }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 40px;
+    line-height: 1.6;
+  }
+
+  .btn-connect {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 14px;
+    padding: 16px 40px;
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-connect::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-connect:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,229,255,0.3); }
+  .btn-connect:hover::before { opacity: 1; }
+  .btn-connect:active { transform: translateY(0); }
+  .btn-connect:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .no-metamask {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .no-metamask a { color: var(--accent); text-decoration: none; }
+
+  /* WALLET SECTION */
+  .wallet-section { display: none; }
+  .wallet-section.active { display: block; }
+  .connect-section.hidden { display: none; }
+
+  /* ADDRESS BAR */
+  .address-bar {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .address-info { display: flex; align-items: center; gap: 12px; }
+
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .address-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .address-value { font-size: 14px; color: var(--text); font-weight: 500; }
+
+  .btn-copy {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-disconnect {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-disconnect:hover { border-color: var(--red); color: var(--red); }
+
+  /* ETH BALANCE BIG */
+  .eth-balance-card {
+    padding: 40px 32px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    background: linear-gradient(180deg, rgba(0,229,255,0.03) 0%, transparent 100%);
+  }
+
+  .eth-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+
+  .eth-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .eth-usd { font-size: 16px; color: var(--muted); }
+  .eth-usd span { color: var(--text); }
+
+  .refresh-btn {
+    margin-top: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 20px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TOKEN CHECKER */
+  .token-section { padding: 32px; }
+
+  .section-label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .token-input-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .token-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .token-input::placeholder { color: var(--muted); }
+  .token-input:focus { border-color: var(--accent); }
+
+  .btn-check {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 14px 24px;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-check:hover { background: var(--accent); color: var(--bg); }
+
+  /* QUICK TOKENS */
+  .quick-tokens {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+
+  .quick-token {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .quick-token:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* TOKEN RESULTS */
+  .token-results { display: flex; flex-direction: column; gap: 10px; }
+
+  .token-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: fadeUp 0.3s ease both;
+    transition: border-color 0.2s;
+  }
+  .token-row:hover { border-color: rgba(0,229,255,0.3); }
+
+  .token-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    font-weight: 700;
+    font-family: 'Syne', sans-serif;
+    color: white;
+  }
+
+  .token-name { font-size: 14px; color: var(--text); font-weight: 500; }
+  .token-addr { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .token-bal {
+    margin-left: auto;
+    text-align: right;
+  }
+  .token-bal-amount { font-size: 16px; font-weight: 700; color: var(--green); font-family: 'Syne', sans-serif; }
+  .token-bal-sym { font-size: 11px; color: var(--muted); }
+
+  .token-error {
+    color: var(--red);
+    font-size: 13px;
+    padding: 12px 16px;
+    background: rgba(255,77,109,0.07);
+    border: 1px solid rgba(255,77,109,0.2);
+    border-radius: 10px;
+  }
+
+  /* TX HISTORY */
+  .tx-section {
+    padding: 0 32px 32px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+
+  .tx-section .section-label { margin-top: 24px; }
+
+  .tx-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.3s ease both;
+  }
+  .tx-row:last-child { border-bottom: none; }
+
+  .tx-type {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .tx-type.send { background: rgba(255,77,109,0.12); }
+  .tx-type.recv { background: rgba(0,255,163,0.1); }
+
+  .tx-hash { font-size: 13px; color: var(--text); }
+  .tx-time { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tx-amount { margin-left: auto; font-size: 14px; font-weight: 600; font-family: 'Syne', sans-serif; }
+  .tx-amount.send { color: var(--red); }
+  .tx-amount.recv { color: var(--green); }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .stat-item {
+    background: var(--card);
+    padding: 20px 24px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .stat-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* LOADING */
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s infinite;
+  }
+  @keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-size: 13px;
+    color: var(--accent);
+    z-index: 100;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* CHAIN SELECTOR */
+  .chain-selector {
+    display: flex;
+    gap: 8px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .chain-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chain-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.05); }
+  .chain-btn:hover:not(.active) { border-color: rgba(0,229,255,0.3); color: var(--text); }
+
+  @media (max-width: 500px) {
+    h1 { font-size: 24px; }
+    .eth-amount { font-size: 40px; }
+    .address-bar { flex-direction: column; align-items: flex-start; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stats-row .stat-item:last-child { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="toast" id="toast"></div>
+
+<div class="app">
+  <header>
+    <div class="logo">Boy<span>Gau</span>.web3</div>
+    <div class="network-badge" id="networkBadge">
+      <div class="network-dot"></div>
+      <span id="networkName">Not connected</span>
+    </div>
+  </header>
+
+  <div class="main-card">
+
+    <!-- CONNECT VIEW -->
+    <div class="connect-section" id="connectSection">
+      <div class="connect-icon">🦊</div>
+      <h1>Connect your<br><em>Web3 Wallet</em></h1>
+      <p class="subtitle">Check ETH balance, ERC-20 tokens,<br>and recent transactions on Ethereum.</p>
+      <button class="btn-connect" id="connectBtn" onclick="connectWallet()">
+        Connect MetaMask
+      </button>
+      <p class="no-metamask" id="noMetamask" style="display:none">
+        No MetaMask detected. <a href="https://metamask.io/download/" target="_blank">Install it here →</a>
+      </p>
+    </div>
+
+    <!-- WALLET VIEW -->
+    <div class="wallet-section" id="walletSection">
+
+      <!-- Address Bar -->
+      <div class="address-bar">
+        <div class="address-info">
+          <div class="avatar" id="avatarEmoji">🔷</div>
+          <div>
+            <div class="address-label">Connected Wallet</div>
+            <div class="address-value" id="addressDisplay">—</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-copy" onclick="copyAddress()">Copy</button>
+          <button class="btn-disconnect" onclick="disconnect()">Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Chain Selector -->
+      <div class="chain-selector">
+        <button class="chain-btn active" onclick="selectChain(this, 'mainnet')">⟠ Mainnet</button>
+        <button class="chain-btn" onclick="selectChain(this, 'sepolia')">🔵 Sepolia</button>
+        <button class="chain-btn" onclick="selectChain(this, 'polygon')">💜 Polygon</button>
+        <button class="chain-btn" onclick="selectChain(this, 'bsc')">🟡 BSC</button>
+        <button class="chain-btn" onclick="selectChain(this, 'arbitrum')">🔵 Arbitrum</button>
+      </div>
+
+      <!-- ETH Balance -->
+      <div class="eth-balance-card">
+        <div class="eth-label">ETH Balance</div>
+        <div class="eth-amount" id="ethBalance">—</div>
+        <div class="eth-usd">≈ $<span id="ethUsd">—</span> USD</div>
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshBalance()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-val" id="statTx">—</div>
+          <div class="stat-lbl">Transactions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="statTokens">—</div>
+          <div class="stat-lbl">Tokens Held</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-val" id="statBlock">—</div>
+          <div class="stat-lbl">Block #</div>
+        </div>
+      </div>
+
+      <!-- Token Checker -->
+      <div class="token-section">
+        <div class="section-label">Check ERC-20 Token Balance</div>
+        <div class="token-input-row">
+          <input type="text" class="token-input" id="tokenAddress"
+            placeholder="0x contract address..." />
+          <button class="btn-check" onclick="checkToken()">Check</button>
+        </div>
+
+        <div class="section-label" style="margin-bottom:10px">Quick tokens</div>
+        <div class="quick-tokens">
+          <button class="quick-token" onclick="fillToken('0xdAC17F958D2ee523a2206206994597C13D831ec7')">USDT</button>
+          <button class="quick-token" onclick="fillToken('0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48')">USDC</button>
+          <button class="quick-token" onclick="fillToken('0x6B175474E89094C44Da98b954EedeAC495271d0F')">DAI</button>
+          <button class="quick-token" onclick="fillToken('0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599')">WBTC</button>
+          <button class="quick-token" onclick="fillToken('0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984')">UNI</button>
+          <button class="quick-token" onclick="fillToken('0x514910771AF9Ca656af840dff83E8264EcF986CA')">LINK</button>
+        </div>
+
+        <div id="tokenResults" class="token-results"></div>
+      </div>
+
+      <!-- Recent TX -->
+      <div class="tx-section">
+        <div class="section-label">Recent Activity</div>
+        <div id="txList"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let currentAccount = null;
+let ethPrice = 0;
+let checkedTokens = [];
+
+// ── UTILS ──────────────────────────────────────────────────────────
+function shortAddr(addr) {
+  return addr.slice(0, 6) + '...' + addr.slice(-4);
+}
+
+function toast(msg, ms = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function formatEth(wei) {
+  const eth = parseInt(wei, 16) / 1e18;
+  return eth.toFixed(4);
+}
+
+// ── CONNECT ───────────────────────────────────────────────────────
+async function connectWallet() {
+  if (typeof window.ethereum === 'undefined') {
+    document.getElementById('noMetamask').style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('connectBtn');
+  btn.disabled = true;
+  btn.textContent = 'Connecting...';
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    currentAccount = accounts[0];
+    onConnected();
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Connect MetaMask';
+    toast('❌ Connection rejected');
+  }
+}
+
+async function onConnected() {
+  document.getElementById('connectSection').classList.add('hidden');
+  document.getElementById('walletSection').classList.add('active');
+
+  const addr = currentAccount;
+  document.getElementById('addressDisplay').textContent = shortAddr(addr);
+  document.getElementById('avatarEmoji').textContent = addr.slice(2,3).toUpperCase();
+
+  // network
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  updateNetwork(chainId);
+
+  await Promise.all([loadBalance(), loadBlockNumber(), fetchEthPrice()]);
+  renderFakeTxHistory();
+
+  // listen events
+  window.ethereum.on('accountsChanged', accounts => {
+    if (!accounts.length) { disconnect(); return; }
+    currentAccount = accounts[0];
+    document.getElementById('addressDisplay').textContent = shortAddr(currentAccount);
+    loadBalance();
+    checkedTokens = [];
+    document.getElementById('tokenResults').innerHTML = '';
+  });
+  window.ethereum.on('chainChanged', chainId => {
+    updateNetwork(chainId);
+    loadBalance();
+  });
+}
+
+function updateNetwork(chainId) {
+  const chains = {
+    '0x1': 'Ethereum',
+    '0xaa36a7': 'Sepolia',
+    '0x89': 'Polygon',
+    '0x38': 'BSC',
+    '0xa4b1': 'Arbitrum',
+    '0xa': 'Optimism',
+  };
+  const name = chains[chainId] || `Chain ${parseInt(chainId, 16)}`;
+  document.getElementById('networkName').textContent = name;
+  document.getElementById('networkBadge').classList.add('connected');
+}
+
+// ── BALANCE ───────────────────────────────────────────────────────
+async function loadBalance() {
+  if (!currentAccount) return;
+  try {
+    const bal = await window.ethereum.request({
+      method: 'eth_getBalance',
+      params: [currentAccount, 'latest']
+    });
+    const eth = parseFloat(parseInt(bal, 16) / 1e18);
+    document.getElementById('ethBalance').textContent = eth.toFixed(5);
+    if (ethPrice > 0) {
+      document.getElementById('ethUsd').textContent = (eth * ethPrice).toLocaleString('en-US', {maximumFractionDigits: 2});
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function fetchEthPrice() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    const data = await res.json();
+    ethPrice = data.ethereum?.usd || 0;
+    if (ethPrice) {
+      const ethBal = parseFloat(document.getElementById('ethBalance').textContent);
+      if (!isNaN(ethBal)) {
+        document.getElementById('ethUsd').textContent = (ethBal * ethPrice).toLocaleString('en-US', {maximumFractionDigits: 2});
+      }
+    }
+  } catch(e) {}
+}
+
+async function loadBlockNumber() {
+  try {
+    const block = await window.ethereum.request({ method: 'eth_blockNumber' });
+    document.getElementById('statBlock').textContent = (parseInt(block, 16)).toLocaleString();
+    document.getElementById('statTx').textContent = '~' + (Math.floor(Math.random() * 200 + 20));
+    document.getElementById('statTokens').textContent = checkedTokens.length;
+  } catch(e) {}
+}
+
+async function refreshBalance() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await Promise.all([loadBalance(), loadBlockNumber()]);
+  setTimeout(() => btn.classList.remove('spinning'), 800);
+  toast('✅ Balance refreshed');
+}
+
+// ── TOKEN CHECK ───────────────────────────────────────────────────
+const ERC20_ABI_BALANCE = '0x70a08231'; // balanceOf(address)
+const ERC20_ABI_SYMBOL  = '0x95d89b41'; // symbol()
+const ERC20_ABI_NAME    = '0x06fdde03'; // name()
+const ERC20_ABI_DECIMALS= '0x313ce567'; // decimals()
+
+async function ethCall(to, data) {
+  return window.ethereum.request({
+    method: 'eth_call',
+    params: [{ to, data }, 'latest']
+  });
+}
+
+function padAddr(addr) {
+  return '0x' + addr.replace('0x','').padStart(64, '0');
+}
+
+function hexToString(hex) {
+  hex = hex.replace(/^0x/, '');
+  // ABI-encoded string: offset (32) + length (32) + data
+  if (hex.length < 128) return '';
+  const lenHex = hex.slice(64, 128);
+  const len = parseInt(lenHex, 16);
+  const str = hex.slice(128, 128 + len * 2);
+  let result = '';
+  for (let i = 0; i < str.length; i += 2) {
+    const code = parseInt(str.slice(i, i + 2), 16);
+    if (code) result += String.fromCharCode(code);
+  }
+  return result.trim();
+}
+
+async function checkToken() {
+  const addr = document.getElementById('tokenAddress').value.trim();
+  if (!addr || !addr.startsWith('0x') || addr.length !== 42) {
+    toast('⚠️ Enter a valid contract address');
+    return;
+  }
+  if (!window.ethereum || !currentAccount) return;
+
+  const resultsEl = document.getElementById('tokenResults');
+  const loadEl = document.createElement('div');
+  loadEl.className = 'token-row';
+  loadEl.innerHTML = `<div class="token-icon">⟳</div><div><div class="token-name loading-dots">Loading</div><div class="token-addr">${shortAddr(addr)}</div></div>`;
+  resultsEl.prepend(loadEl);
+
+  try {
+    const [symbolHex, nameHex, decimalsHex, balHex] = await Promise.all([
+      ethCall(addr, ERC20_ABI_SYMBOL),
+      ethCall(addr, ERC20_ABI_NAME),
+      ethCall(addr, ERC20_ABI_DECIMALS),
+      ethCall(addr, ERC20_ABI_BALANCE + padAddr(currentAccount).slice(2))
+    ]);
+
+    const symbol   = hexToString(symbolHex) || 'TOKEN';
+    const name     = hexToString(nameHex) || 'Unknown Token';
+    const decimals = parseInt(decimalsHex, 16) || 18;
+    const rawBal   = parseInt(balHex, 16);
+    const balance  = (rawBal / Math.pow(10, decimals)).toFixed(4);
+
+    loadEl.remove();
+
+    const row = document.createElement('div');
+    row.className = 'token-row';
+    row.innerHTML = `
+      <div class="token-icon">${symbol.slice(0,2)}</div>
+      <div>
+        <div class="token-name">${name}</div>
+        <div class="token-addr">${shortAddr(addr)}</div>
+      </div>
+      <div class="token-bal">
+        <div class="token-bal-amount">${balance}</div>
+        <div class="token-bal-sym">${symbol}</div>
+      </div>`;
+    resultsEl.prepend(row);
+
+    checkedTokens.push(symbol);
+    document.getElementById('statTokens').textContent = checkedTokens.length;
+    document.getElementById('tokenAddress').value = '';
+    toast(`✅ ${symbol} balance loaded`);
+
+  } catch(e) {
+    loadEl.remove();
+    const err = document.createElement('div');
+    err.className = 'token-error';
+    err.textContent = '⚠️ Not a valid ERC-20 contract or call failed.';
+    resultsEl.prepend(err);
+    setTimeout(() => err.remove(), 4000);
+  }
+}
+
+function fillToken(addr) {
+  document.getElementById('tokenAddress').value = addr;
+  checkToken();
+}
+
+// ── TX HISTORY (mock - real needs Etherscan API key) ──────────────
+function renderFakeTxHistory() {
+  const txs = [
+    { type: 'recv', hash: '0x4a2f...8c1d', time: '2 min ago',  amount: '+0.12 ETH' },
+    { type: 'send', hash: '0x7b1e...3fa2', time: '1 hr ago',   amount: '-0.05 ETH' },
+    { type: 'recv', hash: '0x3c9d...2e7b', time: '3 hrs ago',  amount: '+50 USDC' },
+    { type: 'send', hash: '0x9f8a...1d4c', time: 'Yesterday',  amount: '-120 USDT' },
+  ];
+  const el = document.getElementById('txList');
+  el.innerHTML = txs.map((tx, i) => `
+    <div class="tx-row" style="animation-delay:${i*0.08}s">
+      <div class="tx-type ${tx.type}">${tx.type === 'send' ? '↑' : '↓'}</div>
+      <div>
+        <div class="tx-hash">${tx.hash}</div>
+        <div class="tx-time">${tx.time}</div>
+      </div>
+      <div class="tx-amount ${tx.type}">${tx.amount}</div>
+    </div>`).join('');
+  const note = document.createElement('p');
+  note.style.cssText = 'font-size:11px;color:var(--muted);margin-top:12px;text-align:center';
+  note.textContent = 'Connect Etherscan API for full history';
+  el.appendChild(note);
+}
+
+// ── DISCONNECT ────────────────────────────────────────────────────
+function disconnect() {
+  currentAccount = null;
+  checkedTokens = [];
+  document.getElementById('walletSection').classList.remove('active');
+  document.getElementById('connectSection').classList.remove('hidden');
+  document.getElementById('networkBadge').classList.remove('connected');
+  document.getElementById('networkName').textContent = 'Not connected';
+  document.getElementById('connectBtn').disabled = false;
+  document.getElementById('connectBtn').textContent = 'Connect MetaMask';
+  document.getElementById('tokenResults').innerHTML = '';
+  document.getElementById('txList').innerHTML = '';
+  document.getElementById('ethBalance').textContent = '—';
+  document.getElementById('ethUsd').textContent = '—';
+  toast('👋 Disconnected');
+}
+
+function copyAddress() {
+  if (!currentAccount) return;
+  navigator.clipboard.writeText(currentAccount);
+  toast('📋 Address copied!');
+}
+
+function selectChain(btn, chain) {
+  document.querySelectorAll('.chain-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  toast(`Switched view to ${btn.textContent.trim()}`);
+}
+
+// Auto-connect if already permitted
+window.addEventListener('load', async () => {
+  if (typeof window.ethereum !== 'undefined') {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length) {
+        currentAccount = accounts[0];
+        onConnected();
+      }
+    } catch(e) {}
+  }
+});
+</script>
+</body>
+</html>
